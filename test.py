@@ -75,7 +75,7 @@ def test():
 
     assert (opt.checkpoint_path is not None), "Have to pass checkpoint!"
 
-    print("Loading model from %s" % opt.checkpoint_path)
+    print(f"Loading model from {opt.checkpoint_path}")
     util.custom_load(model, path=opt.checkpoint_path, discriminator=None,
                      overwrite_embeddings=False)
 
@@ -91,13 +91,16 @@ def test():
 
     # Save command-line parameters to log directory.
     with open(os.path.join(opt.logging_root, "params.txt"), "w") as out_file:
-        out_file.write('\n'.join(["%s: %s" % (key, value) for key, value in vars(opt).items()]))
+        out_file.write(
+            '\n'.join([f"{key}: {value}" for key, value in vars(opt).items()])
+        )
+
 
     print('Beginning evaluation...')
     with torch.no_grad():
         instance_idx = 0
         idx = 0
-        psnrs, ssims = list(), list()
+        psnrs, ssims = [], []
         for model_input, ground_truth in dataset:
             model_outputs = model(model_input)
             psnr, ssim = model.get_psnr(model_outputs, ground_truth)

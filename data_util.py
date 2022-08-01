@@ -32,12 +32,10 @@ def load_depth(path, sidelength=None):
 
     img *= 1e-4
 
-    if len(img.shape) == 3:
-        img = img[:, :, :1]
-        img = img.transpose(2, 0, 1)
-    else:
-        img = img[None, :, :]
-    return img
+    if len(img.shape) != 3:
+        return img[None, :, :]
+    img = img[:, :, :1]
+    return img.transpose(2, 0, 1)
 
 
 def load_pose(filename):
@@ -55,8 +53,11 @@ def load_pose(filename):
 def load_params(filename):
     lines = open(filename).read().splitlines()
 
-    params = np.array([float(x) for x in lines[0].split()]).astype(np.float32).squeeze()
-    return params
+    return (
+        np.array([float(x) for x in lines[0].split()])
+        .astype(np.float32)
+        .squeeze()
+    )
 
 
 def cond_mkdir(path):
@@ -128,8 +129,11 @@ def shapenet_train_test_split(shapenet_path, synset_id, name, csv_path):
     test = synset_df[synset_df['split'] == 'test']
     print(len(train), len(val), len(test))
 
-    train_path, val_path, test_path = [os.path.join(shapenet_path, str(synset_id) + '_' + name + '_' + x)
-                                       for x in ['train', 'val', 'test']]
+    train_path, val_path, test_path = [
+        os.path.join(shapenet_path, f'{str(synset_id)}_' + name + '_' + x)
+        for x in ['train', 'val', 'test']
+    ]
+
     cond_mkdir(train_path)
     cond_mkdir(val_path)
     cond_mkdir(test_path)
@@ -140,7 +144,7 @@ def shapenet_train_test_split(shapenet_path, synset_id, name, csv_path):
                 shutil.copytree(os.path.join(shapenet_path, str(synset_id), str(row.modelId)),
                                 os.path.join(shapenet_path, trgt_path, str(row.modelId)))
             except FileNotFoundError:
-                print("%s does not exist" % str(row.modelId))
+                print(f"{str(row.modelId)} does not exist")
 
 
 def transform_viewpoint(v):
@@ -176,9 +180,7 @@ def euler2mat(z=0, y=0, x=0):
             [[1, 0, 0],
              [0, cosx, -sinx],
              [0, sinx, cosx]]))
-    if Ms:
-        return functools.reduce(np.dot, Ms[::-1])
-    return np.eye(3)
+    return functools.reduce(np.dot, Ms[::-1]) if Ms else np.eye(3)
 
 
 def look_at(vec_pos, vec_look_at):

@@ -13,8 +13,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 def get_latest_file(root_dir):
     """Returns path to latest file in a directory."""
     list_of_files = glob.glob(os.path.join(root_dir, '*'))
-    latest_file = max(list_of_files, key=os.path.getctime)
-    return latest_file
+    return max(list_of_files, key=os.path.getctime)
 
 
 def parse_comma_separated_integers(string):
@@ -65,11 +64,7 @@ def parse_intrinsics(filepath, trgt_sidelength=None, invert_y=False):
         f = trgt_sidelength / height * f
 
     fx = f
-    if invert_y:
-        fy = -f
-    else:
-        fy = f
-
+    fy = -f if invert_y else f
     # Build the intrinsic matrices
     full_intrinsic = np.array([[fx, 0., cx, 0.],
                                [0., fy, cy, 0],
@@ -114,7 +109,7 @@ def write_image(writer, name, img, iter):
 
 def print_network(net):
     model_parameters = filter(lambda p: p.requires_grad, net.parameters())
-    params = sum([np.prod(p.size()) for p in model_parameters])
+    params = sum(np.prod(p.size()) for p in model_parameters)
     print("%d"%params)
 
 
@@ -149,9 +144,9 @@ def custom_load(model, path, discriminator=None, overwrite_embeddings=False, ove
 def custom_save(model, path, discriminator=None, optimizer=None):
     whole_dict = {'model':model.state_dict()}
     if discriminator:
-        whole_dict.update({'discriminator':discriminator.state_dict()})
+        whole_dict['discriminator'] = discriminator.state_dict()
     if optimizer:
-        whole_dict.update({'optimizer':optimizer.state_dict()})
+        whole_dict['optimizer'] = optimizer.state_dict()
 
     torch.save(whole_dict, path)
 

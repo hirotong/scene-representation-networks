@@ -7,9 +7,7 @@ import util
 
 
 def pick(list, item_idcs):
-    if not list:
-        return list
-    return [list[i] for i in item_idcs]
+    return [list[i] for i in item_idcs] if list else list
 
 
 class SceneInstanceDataset():
@@ -30,7 +28,7 @@ class SceneInstanceDataset():
         param_dir = os.path.join(instance_dir, "params")
 
         if not os.path.isdir(color_dir):
-            print("Error! root dir %s is wrong" % instance_dir)
+            print(f"Error! root dir {instance_dir} is wrong")
             return
 
         self.has_params = os.path.isdir(param_dir)
@@ -78,15 +76,14 @@ class SceneInstanceDataset():
         uv = torch.from_numpy(np.flip(uv, axis=0).copy()).long()
         uv = uv.reshape(2, -1).transpose(1, 0)
 
-        sample = {
+        return {
             "instance_idx": torch.Tensor([self.instance_idx]).squeeze(),
             "rgb": torch.from_numpy(rgb).float(),
             "pose": torch.from_numpy(pose).float(),
             "uv": uv,
             "param": torch.from_numpy(params).float(),
-            "intrinsics": intrinsics
+            "intrinsics": intrinsics,
         }
-        return sample
 
 
 class SceneClassDataset(torch.utils.data.Dataset):
@@ -142,16 +139,14 @@ class SceneClassDataset(torch.utils.data.Dataset):
         all_parsed = []
         for entry in batch_list:
             # make them all into a new dict
-            ret = {}
-            for k in entry[0][0].keys():
-                ret[k] = []
+            ret = {k: [] for k in entry[0][0].keys()}
             # flatten the list of list
             for b in entry:
                 for k in entry[0][0].keys():
                     ret[k].extend( [bi[k] for bi in b])
-            for k in ret.keys():
-                if type(ret[k][0]) == torch.Tensor:
-                   ret[k] = torch.stack(ret[k])
+            for k, v in ret.items():
+                if type(v[0]) == torch.Tensor:
+                    ret[k] = torch.stack(ret[k])
             all_parsed.append(ret)
 
         return tuple(all_parsed)
@@ -161,11 +156,13 @@ class SceneClassDataset(torch.utils.data.Dataset):
         as well as a list of ground-truths for each observation (also a dict)."""
         obj_idx, rel_idx = self.get_instance_idx(idx)
 
-        observations = []
-        observations.append(self.all_instances[obj_idx][rel_idx])
-
-        for i in range(self.samples_per_instance - 1):
-            observations.append(self.all_instances[obj_idx][np.random.randint(len(self.all_instances[obj_idx]))])
+        observations = [self.all_instances[obj_idx][rel_idx]]
+        observations.extend(
+            self.all_instances[obj_idx][
+                np.random.randint(len(self.all_instances[obj_idx]))
+            ]
+            for _ in range(self.samples_per_instance - 1)
+        )
 
         ground_truth = [{'rgb':ray_bundle['rgb']} for ray_bundle in observations]
 

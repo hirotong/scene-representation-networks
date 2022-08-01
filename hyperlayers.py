@@ -27,11 +27,7 @@ class LookupLayer(nn.Module):
         )
 
     def forward(self, obj_idx):
-        net = nn.Sequential(
-            self.lookup_lin(obj_idx),
-            self.norm_nl
-        )
-        return net
+        return nn.Sequential(self.lookup_lin(obj_idx), self.norm_nl)
 
 class LookupFC(nn.Module):
     def __init__(self,
@@ -45,7 +41,7 @@ class LookupFC(nn.Module):
         self.layers = nn.ModuleList()
         self.layers.append(LookupLayer(in_ch=in_ch, out_ch=hidden_ch, num_objects=num_objects))
 
-        for i in range(num_hidden_layers):
+        for _ in range(num_hidden_layers):
             self.layers.append(LookupLayer(in_ch=hidden_ch, out_ch=hidden_ch, num_objects=num_objects))
 
         if outermost_linear:
@@ -54,10 +50,7 @@ class LookupFC(nn.Module):
             self.layers.append(LookupLayer(in_ch=hidden_ch, out_ch=out_ch, num_objects=num_objects))
 
     def forward(self, obj_idx):
-        net = []
-        for i in range(len(self.layers)):
-            net.append(self.layers[i](obj_idx))
-
+        net = [self.layers[i](obj_idx) for i in range(len(self.layers))]
         return nn.Sequential(*net)
 
 
@@ -146,7 +139,7 @@ class HyperFC(nn.Module):
         self.layers = nn.ModuleList()
         self.layers.append(PreconfHyperLayer(in_ch=in_ch, out_ch=hidden_ch))
 
-        for i in range(num_hidden_layers):
+        for _ in range(num_hidden_layers):
             self.layers.append(PreconfHyperLayer(in_ch=hidden_ch, out_ch=hidden_ch))
 
         if outermost_linear:
@@ -160,10 +153,7 @@ class HyperFC(nn.Module):
         :param hyper_input: Input to hypernetwork.
         :return: nn.Module; Predicted fully connected neural network.
         '''
-        net = []
-        for i in range(len(self.layers)):
-            net.append(self.layers[i](hyper_input))
-
+        net = [self.layers[i](hyper_input) for i in range(len(self.layers))]
         return nn.Sequential(*net)
 
 
@@ -185,7 +175,10 @@ class BatchLinear(nn.Module):
         return "BatchLinear(in_ch=%d, out_ch=%d)"%(self.weights.shape[-1], self.weights.shape[-2])
 
     def forward(self, input):
-        output = input.matmul(self.weights.permute(*[i for i in range(len(self.weights.shape)-2)], -1, -2))
+        output = input.matmul(
+            self.weights.permute(*list(range(len(self.weights.shape) - 2)), -1, -2)
+        )
+
         output += self.biases
         return output
 

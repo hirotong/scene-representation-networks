@@ -77,7 +77,7 @@ class SRNsModel(nn.Module):
         self.l2_loss = nn.MSELoss(reduction="mean")
 
         # List of logs
-        self.logs = list()
+        self.logs = []
 
         print(self)
         print("Number of parameters:")
@@ -107,18 +107,13 @@ class SRNsModel(nn.Module):
 
         trgt_imgs = trgt_imgs.cuda()
 
-        loss = self.l2_loss(pred_imgs, trgt_imgs)
-        return loss
+        return self.l2_loss(pred_imgs, trgt_imgs)
 
     def get_latent_loss(self):
         """Computes loss on latent code vectors (L_{latent} in eq. 6 in paper)
         :return: Latent loss.
         """
-        if self.fit_single_srn:
-            self.latent_reg_loss = 0
-        else:
-            self.latent_reg_loss = torch.mean(self.z ** 2)
-
+        self.latent_reg_loss = 0 if self.fit_single_srn else torch.mean(self.z ** 2)
         return self.latent_reg_loss
 
     def get_psnr(self, prediction, ground_truth):
@@ -140,7 +135,7 @@ class SRNsModel(nn.Module):
         if not isinstance(trgt_imgs, np.ndarray):
             trgt_imgs = util.lin2img(trgt_imgs).detach().cpu().numpy()
 
-        psnrs, ssims = list(), list()
+        psnrs, ssims = [], []
         for i in range(batch_size):
             p = pred_imgs[i].squeeze().transpose(1, 2, 0)
             trgt = trgt_imgs[i].squeeze().transpose(1, 2, 0)
@@ -176,13 +171,12 @@ class SRNsModel(nn.Module):
 
         predictions = util.lin2img(predictions)
 
-        if ground_truth is not None:
-            trgt_imgs = ground_truth["rgb"]
-            trgt_imgs = util.lin2img(trgt_imgs)
-
-            return torch.cat((normals.cpu(), predictions.cpu(), trgt_imgs.cpu()), dim=3).numpy()
-        else:
+        if ground_truth is None:
             return torch.cat((normals.cpu(), predictions.cpu()), dim=3).numpy()
+        trgt_imgs = ground_truth["rgb"]
+        trgt_imgs = util.lin2img(trgt_imgs)
+
+        return torch.cat((normals.cpu(), predictions.cpu(), trgt_imgs.cpu()), dim=3).numpy()
 
     def get_output_img(self, prediction):
         pred_imgs, _ = prediction

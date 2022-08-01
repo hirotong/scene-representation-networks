@@ -33,16 +33,14 @@ def get_ray_directions_cam(uv, intrinsics):
     z_cam = torch.ones((batch_size, num_samples)).cuda()
 
     pixel_points_cam = lift(x_cam, y_cam, z_cam, intrinsics=intrinsics, homogeneous=False)  # (batch_size, -1, 4)
-    ray_dirs = F.normalize(pixel_points_cam, dim=2)
-    return ray_dirs
+    return F.normalize(pixel_points_cam, dim=2)
 
 
 def reflect_vector_on_vector(vector_to_reflect, reflection_axis):
     refl = F.normalize(vector_to_reflect.cuda())
     ax = F.normalize(reflection_axis.cuda())
 
-    r = 2 * (ax * refl).sum(dim=1, keepdim=True) * ax - refl
-    return r
+    return 2 * (ax * refl).sum(dim=1, keepdim=True) * ax - refl
 
 
 def parse_intrinsics(intrinsics):
@@ -59,7 +57,7 @@ def expand_as(x, y):
     if len(x.shape) == len(y.shape):
         return x
 
-    for i in range(len(y.shape) - len(x.shape)):
+    for _ in range(len(y.shape) - len(x.shape)):
         x = x.unsqueeze(-1)
 
     return x
@@ -118,9 +116,7 @@ def world_from_xy_depth(xy, depth, cam2world, intrinsics):
     # permute for batch matrix product
     pixel_points_cam = pixel_points_cam.permute(0, 2, 1)
 
-    world_coords = torch.bmm(cam2world, pixel_points_cam).permute(0, 2, 1)[:, :, :3]  # (batch_size, -1, 3)
-
-    return world_coords
+    return torch.bmm(cam2world, pixel_points_cam).permute(0, 2, 1)[:, :, :3]
 
 
 def project_point_on_line(projection_point, line_direction, point_on_line, dim):
@@ -153,7 +149,6 @@ def depth_from_world(world_coords, cam2world):
     points_hom = points_hom.permute(0, 2, 1)
 
     points_cam = torch.inverse(cam2world).bmm(points_hom)  # (batch, 4, num_samples)
-    depth = points_cam[:, 2, :][:, :, None]  # (batch, num_samples, 1)
-    return depth
+    return points_cam[:, 2, :][:, :, None]
 
 

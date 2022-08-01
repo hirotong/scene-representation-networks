@@ -22,7 +22,7 @@ def init_recurrent_weights(self):
 
 def lstm_forget_gate_init(lstm_layer):
     for name, parameter in lstm_layer.named_parameters():
-        if not "bias" in name: continue
+        if "bias" not in name: continue
         n = parameter.size(0)
         start, end = n // 4, n // 2
         parameter.data[start:end].fill_(1.)
@@ -46,7 +46,7 @@ class DepthSampler(nn.Module):
                 cam2world,
                 intersection_net,
                 intrinsics):
-        self.logs = list()
+        self.logs = []
 
         batch_size, _, _ = cam2world.shape
 
@@ -85,7 +85,7 @@ class Raymarcher(nn.Module):
                 uv,
                 intrinsics):
         batch_size, num_samples, _ = uv.shape
-        log = list()
+        log = []
 
         ray_dirs = geometry.get_ray_directions(uv,
                                                cam2world=cam2world,
@@ -161,16 +161,19 @@ class DeepvoxelsRenderer(nn.Module):
 
     def build_net(self):
         self.net = [
-            pytorch_prototyping.Unet(in_channels=self.in_channels,
-                                     out_channels=3 if self.num_upsampling <= 0 else 4 * self.nf0,
-                                     outermost_linear=True if self.num_upsampling <= 0 else False,
-                                     use_dropout=True,
-                                     dropout_prob=0.1,
-                                     nf0=self.nf0 * (2 ** self.num_upsampling),
-                                     norm=nn.BatchNorm2d,
-                                     max_channels=8 * self.nf0,
-                                     num_down=self.num_down_unet)
+            pytorch_prototyping.Unet(
+                in_channels=self.in_channels,
+                out_channels=3 if self.num_upsampling <= 0 else 4 * self.nf0,
+                outermost_linear=self.num_upsampling <= 0,
+                use_dropout=True,
+                dropout_prob=0.1,
+                nf0=self.nf0 * (2**self.num_upsampling),
+                norm=nn.BatchNorm2d,
+                max_channels=8 * self.nf0,
+                num_down=self.num_down_unet,
+            )
         ]
+
 
         if self.num_upsampling > 0:
             self.net += [
